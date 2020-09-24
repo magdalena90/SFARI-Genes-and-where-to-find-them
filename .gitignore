@@ -2,8 +2,3 @@
 .drake
 .Rhistory
 *./Rhistory
-
-InputData/*
-IntermediateData/*
-Results/*
-
