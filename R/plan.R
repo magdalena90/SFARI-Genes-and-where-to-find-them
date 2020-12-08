@@ -18,8 +18,8 @@ plan <- drake_plan (
   
   # Classification Model
   classification_dataset = classification_model_dataset(Gandal_dataset, modules_dataset, running_on_drake = T),
-  biased_classification_model = classification_model(Gandal_dataset, classification_dataset, new_SFARI_dataset, correct_bias = F),
-  unbiased_classification_model = classification_model(Gandal_dataset, classification_dataset, new_SFARI_dataset, correct_bias = T)
+  biased_classification_model = classification_model(Gandal_dataset, classification_dataset, new_SFARI_dataset, 123, correct_bias = F),
+  unbiased_classification_model = classification_model(Gandal_dataset, classification_dataset, new_SFARI_dataset, 123, correct_bias = T)
   
 )
 

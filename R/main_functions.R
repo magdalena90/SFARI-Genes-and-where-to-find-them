@@ -342,7 +342,7 @@ classification_model_dataset = function(dataset, modules_dataset, running_on_dra
   
 }
   
-classification_model = function(Gandal_dataset, classification_dataset, SFARI_dataset, correct_bias){
+classification_model = function(Gandal_dataset, classification_dataset, SFARI_dataset, seed, correct_bias){
   
   # Extract expression matrix from input
   datExpr = Gandal_dataset[['datExpr']]
@@ -354,7 +354,6 @@ classification_model = function(Gandal_dataset, classification_dataset, SFARI_da
     
     # Parameters
     p = 0.75
-    seed = 123
     Loops = 50
     
     # Run model to learn the lambda parameter
@@ -370,8 +369,8 @@ classification_model = function(Gandal_dataset, classification_dataset, SFARI_da
   
   # Parameters
   p = 0.75
-  n_iter = 50
-  seeds = 123:(123+n_iter-1)
+  n_iter = 100
+  seeds = seed:(seed+n_iter-1)
   
   # Run final model
   final_model_output = run_final_model_wrapper(datExpr, datGenes, classification_dataset, SFARI_dataset, 
@@ -379,8 +378,8 @@ classification_model = function(Gandal_dataset, classification_dataset, SFARI_da
   
   if(correct_bias){# Add information from the bias correction process
     
-    final_model_output = c(final_model_output, 'lambda' = lambda, 'BiasVector' = list(model_output[['bias_vec']]),
-                           'AccuracyVector' = list(model_output[['acc_vec']]))
+    final_model_output = c(final_model_output, 'lambda' = lambda, 'BiasVector' = list(model_output$bias_vec),
+                           'AccuracyVector' = list(model_output$acc_vector))
     
   }
   
@@ -388,4 +387,3 @@ classification_model = function(Gandal_dataset, classification_dataset, SFARI_da
   return(final_model_output)
 
 } 
-  

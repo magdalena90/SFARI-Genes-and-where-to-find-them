@@ -3,7 +3,7 @@
 
 # To run the Drake Workflow
 library(drake)
-library(clustermq)
+#library(clustermq)
 
 # Manipulating dataframes
 library(tidyverse)

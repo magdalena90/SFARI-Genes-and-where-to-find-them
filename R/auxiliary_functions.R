@@ -420,12 +420,35 @@ create_train_test_sets = function(dataset, SFARI_dataset, p, seed){
   test_set = dataset[-train_idx,]
   
   # Modify SFARI label in train set, save gene IDS (bc we lose them with SMOTE) and perform oversampling using SMOTE
+  set.seed(seed)
   train_set = train_set %>% mutate(SFARI = ifelse(SFARI == TRUE, 'SFARI', 'not_SFARI') %>% as.factor,
                                    ID = rownames(.) %>% as.factor) %>% SMOTE(form = SFARI ~ . - ID)
   train_set_IDs = train_set %>% pull(ID)
   
   return(list('train_set' = train_set %>% dplyr::select(-ID), 'test_set' = test_set, 
               'train_set_IDs' = train_set_IDs))
+}
+
+calculate_performance_metrics = function(predictions){
+  
+  if(all(predictions$pred == 0)){
+    prec = NA
+    F1 = NA
+  } else {
+    prec = Precision(predictions$SFARI %>% as.numeric, predictions$pred %>% as.numeric, positive = '1')
+    F1 = F1_Score(predictions$SFARI %>% as.numeric, predictions$pred %>% as.numeric, positive = '1')
+  }
+  
+  acc = mean(predictions$SFARI == predictions$pred)
+  rec = Recall(predictions$SFARI %>% as.numeric, predictions$pred %>% as.numeric, positive = '1')
+  pred_ROCR = prediction(predictions$prob, predictions$SFARI)
+  AUC = performance(pred_ROCR, measure='auc')@y.values[[1]]
+  MLP = performance(pred_ROCR, measure='lift', x.measure='rpp')@y.values[[1]] %>% max(na.rm = TRUE)
+  b_acc = mean(c(mean(predictions$SFARI[predictions$SFARI] == predictions$pred[predictions$SFARI]),
+                 mean(predictions$SFARI[!predictions$SFARI] == predictions$pred[!predictions$SFARI])))
+  
+  return(list('acc' = acc, 'prec' = prec, 'rec' = rec, 'F1' = F1, 'AUC' = AUC, 'MLP'=MLP, 'b_acc' = b_acc))
+  
 }
 
 run_weights_model = function(datExpr, classification_dataset, SFARI_dataset, p, seed, Loops){
@@ -440,12 +463,13 @@ run_weights_model = function(datExpr, classification_dataset, SFARI_dataset, p, 
   # SET INITIAL PARAMETERS
   
   # General parameters
-  set.seed(seed)
   lambda_seq = 10^seq(1, -4, by = -.1)
   k_fold = 10
   cv_repeats = 5
+  set.seed(seed)
   trControl = trainControl(method = 'repeatedcv', number = k_fold, repeats = cv_repeats, verboseIter = FALSE, 
-                           classProbs = TRUE, savePredictions = 'final', summaryFunction = twoClassSummary)
+                           classProbs = TRUE, savePredictions = 'final', summaryFunction = twoClassSummary,
+                           seeds = as.list(seq(seed, seed+length(lambda_seq))))
   # Bias correction parameters
   eta = 0.5
   lambda = 0
@@ -453,6 +477,7 @@ run_weights_model = function(datExpr, classification_dataset, SFARI_dataset, p, 
   
   
   # TRAIN MODEL
+  set.seed(seed)
   h = train(SFARI ~., data = train_set, method = 'glmnet', trControl = trControl, metric = 'ROC',
             tuneGrid = expand.grid(alpha = 0, lambda = lambda_seq))
   
@@ -472,6 +497,7 @@ run_weights_model = function(datExpr, classification_dataset, SFARI_dataset, p, 
     
     # Calculate bias for positive predicted samples
     bias = mean(mean_expr$meanExpr_std[predict(h, train_set)=='SFARI'])
+    if(is.na(bias)) bias = 0 # This happens when all the observations are labelled Negative
     
     # Update weights
     lambda = lambda - eta*bias
@@ -484,6 +510,7 @@ run_weights_model = function(datExpr, classification_dataset, SFARI_dataset, p, 
     acc_vec = c(acc_vec, mean(predict(h, train_set) == train_set$SFARI))
     
     # Update h
+    set.seed(seed)
     h = train(SFARI ~., data = train_set, method = 'glmnet', weights = w, trControl = trControl, 
               metric = 'ROC', tuneGrid = expand.grid(alpha = 0, lambda = lambda_seq))
   }
@@ -504,12 +531,13 @@ run_final_model = function(datExpr, classification_dataset, SFARI_dataset, p, se
   # SET INITIAL PARAMETERS
   
   # General parameters
-  set.seed(seed)
   lambda_seq = 10^seq(1, -4, by = -.1)
   k_fold = 10
   cv_repeats = 5
+  set.seed(seed)
   trControl = trainControl(method = 'repeatedcv', number = k_fold, repeats = cv_repeats, verboseIter = FALSE, 
-                           classProbs = TRUE, savePredictions = 'final', summaryFunction = twoClassSummary)
+                           classProbs = TRUE, savePredictions = 'final', summaryFunction = twoClassSummary,
+                           seeds = as.list(seq(seed*100, seed*100+length(lambda_seq))))
   
   # Bias correcting parameters
   mean_expr = data.frame('ID' = train_set_IDs) %>% 
@@ -521,6 +549,7 @@ run_final_model = function(datExpr, classification_dataset, SFARI_dataset, p, se
   
   
   # TRAIN MODEL
+  set.seed(seed)
   fit = train(SFARI ~., data = train_set, method = 'glmnet', weights = w, trControl = trControl, 
               metric = 'ROC', tuneGrid = expand.grid(alpha = 0, lambda = lambda_seq))
   
@@ -534,32 +563,23 @@ run_final_model = function(datExpr, classification_dataset, SFARI_dataset, p, se
   
   
   # Measure performance of the model
-  acc = mean(test_set$SFARI==preds$pred)
-  prec = Precision(test_set$SFARI %>% as.numeric, preds$pred %>% as.numeric, positive = '1')
-  rec = Recall(test_set$SFARI %>% as.numeric, preds$pred %>% as.numeric, positive = '1')
-  F1 = F1_Score(test_set$SFARI %>% as.numeric, preds$pred %>% as.numeric, positive = '1')
-  pred_ROCR = prediction(preds$prob, test_set$SFARI)
-  AUC = performance(pred_ROCR, measure='auc')@y.values[[1]]
+  pm_dataset = preds %>% left_join(data.frame('ID' = rownames(test_set), 'SFARI' = test_set$SFARI), by = 'ID')
+  performance_metrics = calculate_performance_metrics(pm_dataset)
   
   # Extract coefficients from features
   coefs = coef(fit$finalModel, fit$bestTune$lambda) %>% as.vector
   
   
-  return(list('acc' = acc, 'prec' = prec, 'rec' = rec, 'F1' = F1, 'AUC' = AUC, 'preds' = preds, 'coefs'= coefs))
+  return(list('performance_metrics' = performance_metrics, 'preds' = preds, 'coefs'= coefs))
   
 }
 
 run_final_model_wrapper = function(datExpr, datGenes, classification_dataset, SFARI_dataset, p, seeds, n_iter, lambda){
   
   # Store outputs
-  acc = c()
-  prec = c()
-  rec = c()
-  F1 = c()
-  AUC = c()
-  predictions = data.frame('ID' = rownames(classification_dataset), 
-                           'SFARI' = classification_dataset$SFARI, 'prob' = 0, 
-                           'pred' = 0, 'n' = 0)
+  acc = c() ; prec = c() ; rec = c() ; F1 = c() ; AUC = c() ; MLP = c() ; b_acc = c()
+  predictions = data.frame('ID' = rownames(classification_dataset), 'SFARI' = classification_dataset$SFARI, 
+                           'prob' = 0, 'pred' = 0, 'n' = 0)
   coefs = data.frame('var' = c('Intercept', colnames(classification_dataset)[-ncol(classification_dataset)]),
                      'coef' = 0)
   
@@ -569,31 +589,34 @@ run_final_model_wrapper = function(datExpr, datGenes, classification_dataset, SF
     model_output = run_final_model(datExpr, classification_dataset, SFARI_dataset, p, seed, lambda)
     
     # Update outputs
-    acc = c(acc, model_output[['acc']])
-    prec = c(prec, model_output[['prec']])
-    rec = c(rec, model_output[['rec']])
-    F1 = c(F1, model_output[['F1']])
-    AUC = c(AUC, model_output[['AUC']])
-    preds = model_output[['preds']]
-    coefs$coef = coefs$coef + model_output[['coefs']]
-    update_preds = preds %>% dplyr::select(-ID) %>% mutate(n=1)
-    predictions[predictions$ID %in% preds$ID, c('prob','pred','n')] = 
-      predictions[predictions$ID %in% preds$ID, c('prob','pred','n')] +
-      update_preds
+    acc = c(acc, model_output$performance_metrics$acc)
+    prec = c(prec, model_output$performance_metrics$prec)
+    rec = c(rec, model_output$performance_metrics$rec)
+    F1 = c(F1, model_output$performance_metrics$F1)
+    AUC = c(AUC, model_output$performance_metrics$AUC)
+    MLP = c(MLP, model_output$performance_metrics$MLP)
+    b_acc = c(b_acc, model_output$performance_metrics$b_acc)
+    preds = model_output$performance_metrics$preds
+    coefs$coef = coefs$coef + model_output$coefs
+    update_preds = model_output$preds %>% dplyr::select(-ID) %>% mutate(n=1)
+    predictions[predictions$ID %in% model_output$preds$ID, c('prob','pred','n')] = 
+      predictions[predictions$ID %in% model_output$preds$ID, c('prob','pred','n')] + update_preds
   }
   
   # Process results
   coefs = coefs %>% mutate(coef = coef/n_iter)
   
-  predictions = predictions %>% mutate(prob = prob/n, pred_count = pred, 
-                                       pred = prob>0.5) %>%
+  predictions = predictions %>% mutate(prob = prob/n, pred_count = pred, pred = prob>0.5) %>%
                 left_join(datGenes %>% mutate(ID=ensembl_gene_id) %>% dplyr::select(ID, hgnc_symbol), by = 'ID')
   
-  performance_metrics = data.frame('Metric' = c('Accuracy', 'Precision', 'Recall', 'F1_Score', 'AUC'),
-                                   'Mean' = c(mean(acc), mean(prec), mean(rec), mean(F1), mean(AUC)),
-                                   'SD' = c(sd(acc), sd(prec), sd(rec), sd(F1), sd(AUC)))
+  pm_interim_models = list('acc' = acc, 'prec' = prec, 'rec' = rec, 'F1' = F1, 'AUC' = AUC, 'MLP' = MLP, 'b_acc' = b_acc)
+  
+  # Calculate performance metrics of the final model
+  final_predictions = predictions %>% drop_na(pred) #filter(!is.na(pred))
+  pm_final_model = calculate_performance_metrics(final_predictions)
   
   
-  return(list('predictions' = predictions, 'coefficients' = coefs, 'performance_metrics' = performance_metrics))
+  return(list('predictions' = predictions, 'coefficients' = coefs, 'pm_interim_models' = pm_interim_models, 
+              'pm_final_model' = pm_final_model))
 }
 
