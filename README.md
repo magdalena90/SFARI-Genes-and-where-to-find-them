@@ -78,4 +78,4 @@ All code is in R. The [drake](https://github.com/ropensci/drake) package is used
 
 - **biased_classification_model:** Named list with the information from the biased classification model, including the predictions for each gene and the coefficients and performance metrics of the model
 
-- **biased_classification_model:** Named list with the information from the unbiased classification model. The list includes the same elements as biased_classification_model
+- **unbiased_classification_model:** Named list with the information from the unbiased classification model. The list includes the same elements as biased_classification_model
