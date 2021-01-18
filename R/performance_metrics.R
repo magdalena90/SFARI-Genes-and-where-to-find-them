@@ -8,10 +8,7 @@ source('R/packages.R')
 source('R/auxiliary_functions.R')
 source('R/main_functions.R')
 
-#loadd(Gandal_dataset, classification_dataset, new_SFARI_dataset)
-load('Results/Gandal_dataset.RData')
-load('Results/Gandal_dataset.RData')
-load('Results/Gandal_dataset.RData')
+loadd(Gandal_dataset, classification_dataset, new_SFARI_dataset)
 
 n_iter = 100
 seeds = 1:n_iter*1000 # We generate 100 seeds inside the model from the original one, this way they don't overlap between iterations
@@ -22,10 +19,9 @@ cl = makeCluster(cores-2)
 registerDoParallel(cl)
 
 # Create matrix with the performance metrics from each iteration
-performance_metrics = foreach(i=seeds, .combine=rbind, .errorhandling = 'remove') %dopar% {
+performance_metrics = foreach(i=seeds, .combine=rbind, .errorhandling = 'pass') %dopar% {
   
   source('R/packages.R')
-  library(dplyr)
   
   ###################################################################################
   # Shuffle SFARI labels
@@ -38,7 +34,7 @@ performance_metrics = foreach(i=seeds, .combine=rbind, .errorhandling = 'remove'
   # random_SFARI_dataset = random_SFARI_dataset %>% distinct(ID, .keep_all = TRUE)
   # ###################################################################################
 
-  results = classification_model(Gandal_dataset, classification_dataset, SFARI_dataset, i, FALSE)
+  results = classification_model(Gandal_dataset, classification_dataset, new_SFARI_dataset, i, FALSE)
 
   temp = as.vector(c('seed' = i, unlist(results$pm_final_model)))
   

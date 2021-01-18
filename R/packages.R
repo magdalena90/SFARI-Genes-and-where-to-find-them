@@ -24,11 +24,23 @@ library(DOSE)
 library(org.Hs.eg.db)
 
 # Classification model
-library(caret) 
+library(caret)
+library(glmnet)
 library(DMwR) 
 library(ROCR) 
 library(car) 
 library(MLmetrics)
+
+# To create figures and tables
+library(viridis)
+library(ggpubr)
+library(rstatix)
+library(gridExtra)
+library(xtable)
+library(disgenet2r)
+library(readxl)
+library(corrplot)
+library(ggpubr)
 
 # Others
 library(polycor)

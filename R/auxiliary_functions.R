@@ -19,7 +19,7 @@ annotate_genes = function(datExpr, NCBI_dataset){
   mart = useMart(biomart = 'ENSEMBL_MART_ENSEMBL', dataset = 'hsapiens_gene_ensembl', 
                  host = 'feb2014.archive.ensembl.org')
   datGenes = getBM(attributes = getinfo, filters=c('ensembl_gene_id'), values=rownames(datExpr), mart=mart) %>% 
-    rename(external_gene_id = 'hgnc_symbol') %>%
+    dplyr::rename('hgnc_symbol' = external_gene_id) %>%
     mutate(length = end_position-start_position)
   
   

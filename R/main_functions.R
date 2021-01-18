@@ -129,6 +129,7 @@ preprocess_Gandal = function(GO_neuronal_dataset, NCBI_dataset, SFARI_dataset){
   datExpr = datExpr %>% data.frame
   datMeta = norm_data[['datMeta']]
   DE_info = norm_data[['DE_info']] %>% data.frame
+  dds = norm_data$dds
   rm(norm_data)
   
   # 8. Incorporate DEA, Neuronal and SFARI Genes info into a single data frame
@@ -148,7 +149,7 @@ preprocess_Gandal = function(GO_neuronal_dataset, NCBI_dataset, SFARI_dataset){
                                significant, syndromic, Neuronal ,`gene-score`, gene.score))
   
   
-  norm_data = list('datExpr'=datExpr, 'datGenes'=datGenes, 'datMeta'=datMeta, 'genes_info'=genes_info)
+  norm_data = list('datExpr'=datExpr, 'datGenes'=datGenes, 'datMeta'=datMeta, 'genes_info'=genes_info, 'dds'=dds)
   
   return(norm_data)
   
