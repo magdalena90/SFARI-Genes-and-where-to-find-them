@@ -2,7 +2,7 @@
 
 <br>
 
-Code repository for **[link to paper]**
+Code repository for **[SFARI Genes and where to find them; classification modelling to identify genes associated with Autism Spectrum Disorder from RNA-seq data](https://doi.org/10.1101/2021.01.29.428754)**
 
 <br>
 
@@ -28,7 +28,7 @@ All code is in R. The [drake](https://github.com/ropensci/drake) package is used
 
 1. Clone this repository
 
-2. Download InputData **(need to upload it somewhere)**
+2. Download InputData from [doi.org/10.7488/ds/2980](https://doi.org/10.7488/ds/2980)
 
 3. Execute `run.R` or `make.R` depending on whether you want your workflow to be run `drake` or not
 
@@ -38,7 +38,23 @@ All code is in R. The [drake](https://github.com/ropensci/drake) package is used
 
 <br>
 
-**Need to upload the input data somewhere so people can access it easily**
+- **genes_GO_annotations:** Gene Ontology annotations for each gene
+
+- **krishnan_probability_score.xlsx:** Krishnan's ASD probabilty score downloaded from [asd.princeton.edu](http://asd.princeton.edu/)
+
+- **NCBI_gene2ensembl_20_02_07gz:** NCBI's mapping between genes symbols and ensembl IDs
+
+- **NCBI_gene_info_20_02_07_.gz:** Functional annotations of the genes
+
+- **RNAseq_ASD_datExpr.csv:** Gene expression matrix. Downloaded from [mgandal's github repository](https://github.com/mgandal/Shared-molecular-neuropathology-across-major-psychiatric-disorders-parallels-polygenic-overlap)
+
+- **RNAseq_ASD_datMeta.csv:** Metadata of the samples from the gene expression matrix. Downloaded from [mgandal's github repository](https://github.com/mgandal/Shared-molecular-neuropathology-across-major-psychiatric-disorders-parallels-polygenic-overlap)
+
+- **sanders_TADA_score.xlsx** Sanders TADA score downloaded from [He et al., 2013)[https://doi.org/10.1371/journal.pgen.1003671]
+
+- **SFARI_genes_01-03-2020.csv:** SFARI Gene scores using new scoring system
+
+- **SFARI_genes_08-29-2019.csv:** SFARI Gene scores using old scoring system
 
 <br>
 
