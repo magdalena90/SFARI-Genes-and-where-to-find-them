@@ -84,7 +84,7 @@ preprocess_GO_annotations = function(){
   GO_annotations = read.csv('InputData/genes_GO_annotations.csv')
   
   GO_neuronal_dataset = GO_annotations %>% 
-                        filter(grepl('neuron', go_term)) %>% 
+                        filter(grepl('neuro', go_term)) %>% 
                         mutate('ID'=as.character(ensembl_gene_id)) %>% 
                         dplyr::select(-ensembl_gene_id) %>% distinct(ID) %>%
                         mutate('Neuronal' = 1)
@@ -174,7 +174,7 @@ perform_WGCNA = function(dataset){
   
   # Scale-Free Topology
   allowWGCNAThreads()
-  best_power = datExpr %>% t %>% pickSoftThreshold(powerVector = seq(1,4,0.1), RsquaredCut=0.8)
+  best_power = datExpr %>% t %>% pickSoftThreshold(powerVector = seq(1,6,0.1), RsquaredCut=0.8)
   S_sft = datExpr %>% t %>% adjacency(type='signed hybrid', power=best_power$powerEstimate, corFnc='bicor')
   
   # Build dissimilarity matrix from TOM
@@ -355,7 +355,7 @@ classification_model = function(Gandal_dataset, classification_dataset, SFARI_da
     
     # Parameters
     p = 0.75
-    Loops = 50
+    Loops = 30
     
     # Run model to learn the lambda parameter
     model_output = run_weights_model(datExpr, classification_dataset, SFARI_dataset, p, seed, Loops)
@@ -380,7 +380,7 @@ classification_model = function(Gandal_dataset, classification_dataset, SFARI_da
   if(correct_bias){# Add information from the bias correction process
     
     final_model_output = c(final_model_output, 'lambda' = lambda, 'BiasVector' = list(model_output$bias_vec),
-                           'AccuracyVector' = list(model_output$acc_vector))
+                           'BalancedAccuracyVector' = list(model_output$b_acc_vec))
     
   }
   
@@ -388,3 +388,19 @@ classification_model = function(Gandal_dataset, classification_dataset, SFARI_da
   return(final_model_output)
 
 } 
+
+load_transcriptomic_dataset = function(dataset_name){
+
+  dataset_path = 'Results/'
+  if(dataset_name != 'Gandal') dataset_path = paste0('supportingDatasets/', dataset_name, '/' , dataset_path)
+  
+  load(paste0(dataset_path,'preprocessed_data.RData'))
+  classification_dataset = read.csv(paste0(dataset_path,'classification_dataset.csv'), row.names=1)
+  modules_dataset = read.csv(paste0(dataset_path,'modules_dataset.csv'))
+  load(paste0(dataset_path,'biased_classification_model.RData'))
+  load(paste0(dataset_path,'unbiased_classification_model.RData'))
+  
+  return(list('preprocessed_data'=preprocessed_data, 'classification_dataset'=classification_dataset,
+              'modules_dataset'=modules_dataset,'biased_classification_model'=biased_classification_model,
+              'unbiased_classification_model'=unbiased_classification_model))
+}

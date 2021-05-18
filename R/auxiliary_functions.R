@@ -491,7 +491,7 @@ run_weights_model = function(datExpr, classification_dataset, SFARI_dataset, p, 
   
   # Track behaviour of plot
   bias_vec = c()
-  acc_vec = c()
+  b_acc_vec = c()
   
   for(l in 1:Loops){
     
@@ -507,7 +507,11 @@ run_weights_model = function(datExpr, classification_dataset, SFARI_dataset, p, 
     
     # Update tracking vars
     bias_vec = c(bias_vec, bias)
-    acc_vec = c(acc_vec, mean(predict(h, train_set) == train_set$SFARI))
+    preds = predict(h, train_set)
+    b_acc = mean(c(mean(preds[preds=='SFARI'] == train_set$SFARI[preds=='SFARI']),
+                   mean(preds[preds!='SFARI'] == train_set$SFARI[preds!='SFARI'])))
+    b_acc_vec = c(b_acc_vec, b_acc)
+    #acc_vec = c(acc_vec, mean(predict(h, train_set) == train_set$SFARI))
     
     # Update h
     set.seed(seed)
@@ -516,7 +520,7 @@ run_weights_model = function(datExpr, classification_dataset, SFARI_dataset, p, 
   }
   
   
-  return(list('lambda' = lambda, 'bias_vec' = bias_vec, 'acc_vec' = acc_vec))
+  return(list('lambda' = lambda, 'bias_vec' = bias_vec, 'b_acc_vec' = b_acc_vec))
 }
 
 run_final_model = function(datExpr, classification_dataset, SFARI_dataset, p, seed, lambda){
