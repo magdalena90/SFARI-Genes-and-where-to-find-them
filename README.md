@@ -30,7 +30,7 @@ All code is in R. The [drake](https://github.com/ropensci/drake) package is used
 
 2. Download InputData from [doi.org/10.7488/ds/2980](https://doi.org/10.7488/ds/2980)
 
-3. Execute `run.R` or `make.R` depending on whether you want your workflow to be run `drake` or not
+3. Execute `run.R` or `make.R` depending on whether you want your workflow to be run with `drake` or not
 
 <br>
 
