@@ -2,6 +2,8 @@
 # PLOT RESULTS
 
 source('R/packages.R')
+source('R/main_functions.R')
+#source('R/auxiliary_functions.R')
 
 SFARI_colour_hue = function(r) {
   pal = c('#FF7631','#FFB100','#E8E328','#808080','#b3b3b3')[r]
@@ -15,7 +17,7 @@ SFARI_colour_hue = function(r) {
 SFARI_dataset = read.csv('Results/SFARI_dataset.csv') %>% dplyr::rename('gene-score' = gene.score)
 
 # Transcriptomic data
-dataset_name = 'Gandal'
+dataset_name = 'Wright'
 transcriptomic_data = load_transcriptomic_dataset(dataset_name)
 preprocessed_data = transcriptomic_data$preprocessed_data
 datExpr = preprocessed_data$datExpr
@@ -220,6 +222,9 @@ rm(lfc_magnitude, Neuronal_counts, Others_counts, lfc, lfc_list, plot_data, wt, 
 # SECTION 3. Module level: SFARI genes are not enriched in modules from gene co-expression networks that are 
 # strongly correlated with ASD diagnosis
 
+#genes_info = genes_info %>% left_join(SFARI_dataset %>% dplyr::select(ID, `gene-score`), by = 'ID') %>% 
+#             mutate(`gene-score` = ifelse(is.na(`gene-score`), 'Others', `gene-score`))
+
 # Fig 5. SFARI gene enrichment in modules does not correlate with ASD diagnosis status
 # Size: 4 x 5 in for main figure and 3 x 7 for supplementary figures
 modules_dataset = modules_dataset %>% left_join(genes_info %>% dplyr::select(ID, `gene-score`), by = 'ID') %>% 
@@ -250,12 +255,17 @@ enrichment_data = classification_dataset %>% mutate(ID = rownames(.)) %>% dplyr:
                   distinct(MTcor, Module) %>% left_join(enrichment_data, by = 'Module') %>% 
                   mutate('enriched_in_SFARI' = padj_ORA<0.01)
 
-module_diagnosis_vs_SFARI = enrichment_data %>% ggplot(aes(MTcor, 1-pval_ORA, size=size)) + 
-                            geom_point(aes(color = enriched_in_SFARI), alpha = 0.5) + 
+module_diagnosis_vs_SFARI = enrichment_data %>% mutate('enriched' = ifelse(enriched_in_SFARI==TRUE, '', NA)) %>%
+                            ggplot(aes(MTcor, 1-pval_ORA, size=size)) + 
+                            geom_point(aes(color = enriched), alpha = .5) + 
+                            scale_color_manual(values = c('#00BFC4','gray'), limits = c('',''), 
+                                               guide = guide_legend(title.position = 'right')) +
                             geom_smooth(color = '#cccccc', size = 0.5,alpha = 0.1) + 
                             xlab('Module-Diagnosis correlation') + ylab('Enrichment in SFARI Genes') + 
-                            guides(size = FALSE) + labs(color = 'Enrichment is statistically significant') + 
-                            theme_minimal() + theme(legend.position = 'bottom')
+                            guides(size = FALSE) + labs(color = 'Significantly enriched') + 
+                            theme_minimal() + theme(legend.position = 'bottom') + coord_cartesian(ylim = c(0,1))
+
+#ggarrange(Fig17A, Fig17B, nrow=1, common.legend = TRUE, legend='bottom')
 
 # Fig 6. SFARI gene enrichment in modules is related to the mean level of expression of the genes in the module
 # Size: 4 x 5 in for main figure and 3 x 7 for supplementary figures
@@ -264,12 +274,15 @@ mean_expr_by_module = data.frame('ID' = rownames(datExpr), 'meanExpr' =rowMeans(
                       dplyr::select(-ID) %>% group_by(Module) %>% summarise(meanExpr = mean(meanExpr)) %>% 
                       left_join(enrichment_data, by = 'Module')
 
-mean_expr_vs_SFARI = mean_expr_by_module %>% ggplot(aes(meanExpr, 1-pval_ORA, size=size)) + 
-                      geom_point(aes(color = enriched_in_SFARI), alpha = 0.5) + 
-                      geom_smooth(color = '#cccccc', size = 0.5,alpha = 0.1) + 
-                      xlab('Mean expression') + ylab('Enrichment in SFARI Genes') + 
-                      guides(size = FALSE) + labs(color = 'Enrichment is statistically significant') + 
-                      theme_minimal() + theme(legend.position = 'bottom')
+mean_expr_vs_SFARI = mean_expr_by_module %>% mutate('enriched' = ifelse(enriched_in_SFARI==TRUE, '', NA)) %>%
+                     ggplot(aes(meanExpr, 1-pval_ORA, size=size)) + 
+                     geom_point(aes(color = enriched), alpha = 0.5) + 
+                     scale_color_manual(values = c('#00BFC4','gray'), limits = c('',''), 
+                                        guide = guide_legend(title.position = 'right')) +
+                     geom_smooth(color = '#cccccc', size = 0.5,alpha = 0.1) + 
+                     xlab('Mean expression') + ylab('Enrichment in SFARI Genes') + 
+                     guides(size = FALSE) + labs(color = 'Significantly enriched') + 
+                     theme_minimal() + theme(legend.position = 'bottom') + coord_cartesian(ylim = c(0,1))
 
 
 rm(i, module, genes_in_module, ORA_module, ORA_pval, ORA_padj, getinfo, mart, term2gene)
@@ -295,6 +308,8 @@ mean_expr_vs_corrected_prob = data.frame(ID = rownames(datExpr), meanExpr = rowM
                               ggplot(aes(meanExpr, prob)) + geom_point(alpha=0.15, color='#0099cc') +
                               geom_smooth(method='gam', color='gray', alpha=0.2) +
                               xlab('Mean expression') + ylab('Unbiased model probability') +
+                              ylim(c(min(biased_classification_model$predictions$prob), 
+                                     max(biased_classification_model$predictions$prob))) +
                               theme_minimal()
 
 
@@ -453,14 +468,13 @@ mean_expr = data.frame('ID' = rownames(datExpr), 'meanExpr' = rowMeans(datExpr))
   left_join(unbiased_classification_model$predictions, by = 'ID') %>% filter(n>0) %>%
   mutate('meanExpr_std' = (meanExpr-mean(meanExpr))/sd(meanExpr))
 
-w_hat = exp(unbiased_classification_model$lambda*mean_expr$meanExpr_std) # inverso a mean expr
-w0 = 1/(1+w_hat) # prop a mean expr
-w = 1/(1+w_hat)
-
-# inv mean expr Positives, prop Negatives
+w_hat = exp(unbiased_classification_model$lambda*mean_expr$meanExpr_std) # inverse to mean expr
+w = 1/(1+w_hat) # prop to mean expr
+# update w: inv mean expr Positives, prop Negatives:
 w[mean_expr$SFARI %>% as.logical] = w[mean_expr$SFARI %>% as.logical]*w_hat[mean_expr$SFARI %>% as.logical]
-plot_data = data.frame('meanExpr' = mean_expr$meanExpr, 'w_hat' = w_hat, 'w0' = w0, 'w' = w, 
-                       'SFARI' = mean_expr$SFARI, 'pred' = mean_expr$pred)
+
+plot_data = data.frame('meanExpr' = mean_expr$meanExpr, 'w_hat' = w_hat, 'w' = w, 'SFARI' = mean_expr$SFARI, 
+                       'pred' = mean_expr$pred)
 
 bias_correction_weights = plot_data %>% ggplot(aes(meanExpr, w, color = SFARI)) + geom_point(alpha = 0.2) + 
   xlab('Mean expression') + ylab('Weight') + theme_minimal() + theme(legend.position='bottom')

@@ -44,7 +44,7 @@ classification_model_workflow = function(){
   cat('\n\n\nTraining classification models...\n')
   
   # Load input
-  load('Results/Gandal_dataset.RData')
+  load('Results/preprocessed_data.RData')
   SFARI_dataset = read.csv('Results/SFARI_dataset.csv') %>% dplyr::rename('gene-score' = gene.score)
   modules_dataset = read.csv('Results/modules_dataset.csv')
   
