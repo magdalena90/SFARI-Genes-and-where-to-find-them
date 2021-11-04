@@ -30,7 +30,7 @@ All code is in R. The [drake](https://github.com/ropensci/drake) package is used
 
 2. Download InputData from [doi.org/10.7488/ds/2980](https://doi.org/10.7488/ds/2980)
 
-3. Execute `run.R` or `make.R` depending on whether you want your workflow to be run `drake` or not
+3. Execute `run.R` or `make.R` depending on whether you want your workflow to be run with `drake` or not
 
 <br>
 
@@ -50,7 +50,7 @@ All code is in R. The [drake](https://github.com/ropensci/drake) package is used
 
 - **RNAseq_ASD_datMeta.csv:** Metadata of the samples from the gene expression matrix. Downloaded from [mgandal's github repository](https://github.com/mgandal/Shared-molecular-neuropathology-across-major-psychiatric-disorders-parallels-polygenic-overlap)
 
-- **sanders_TADA_score.xlsx** Sanders TADA score downloaded from [He et al., 2013)[https://doi.org/10.1371/journal.pgen.1003671]
+- **sanders_TADA_score.xlsx** Sanders TADA score downloaded from [He et al., 2013](https://doi.org/10.1371/journal.pgen.1003671)
 
 - **SFARI_genes_01-03-2020.csv:** SFARI Gene scores using new scoring system
 
