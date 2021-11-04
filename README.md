@@ -1,8 +1,8 @@
-# SFARI Genes and where to find them; classification modelling to identify genes associated with Autism Spectrum Disorder from RNA-seq data
+# SFARI Genes and where to find them; statistical analysis and modelling of their relation to Autism Spectrum Disorder specific gene expression dysregulation in RNA-seq data
 
 <br>
 
-Code repository for **[SFARI Genes and where to find them; classification modelling to identify genes associated with Autism Spectrum Disorder from RNA-seq data](https://doi.org/10.1101/2021.01.29.428754)**
+Code repository for **[SFARI Genes and where to find them; statistical analysis and modelling of their relation to Autism Spectrum Disorder specific gene expression dysregulation in RNA-seq data](https://doi.org/10.1101/2021.01.29.428754)**
 
 <br>
 
